@@ -1,19 +1,27 @@
 import streamlit as st
 import requests
 import pandas as pd
-import os  # Required for environment variables
+import os
+from streamlit_confetti import confetti  # 🎉 Confetti magic!
 
-# Get backend URL from environment variable (set in Render)
-BACKEND_URL = os.getenv("BACKEND_URL")
+# ========== DARK MODE TOGGLE ==========
+st.set_page_config(page_title="Money Wizard", page_icon="🧙", layout="wide")
+if st.button("🌙 Toggle Dark/Light Mode", key="dark_mode"):
+    current_theme = st.get_theme()
+    new_theme = "light" if current_theme["base"] == "dark" else "dark"
+    st.set_theme(new_theme)
+    st.rerun()
 
-# Error if no backend URL is found
-if not BACKEND_URL:
-    st.error("❌ BACKEND_URL environment variable not set! Please configure it in Render.")
-    st.stop()  # Stop the app if no backend URL
-
-st.set_page_config(page_title="Salary & Loan Calculator", layout="wide")
+# ========== HEADER ==========
 st.title("💰 Advanced Salary & Loan Calculator")
+st.image("https://cdn-icons-png.flaticon.com/512/477/477103.png", width=100)
 st.write("Calculate your salary advances and loan repayments easily!")
+
+# Get backend URL from environment variable
+BACKEND_URL = os.getenv("BACKEND_URL")
+if not BACKEND_URL:
+    st.error("❌ BACKEND_URL environment variable not set!")
+    st.stop()
 
 # Salary Advance Section
 with st.expander("Salary Advance Calculator", expanded=True):
@@ -45,12 +53,13 @@ with st.expander("Salary Advance Calculator", expanded=True):
                 
                 if result['eligible']:
                     st.success("✅ You are eligible for this advance!")
+                    confetti()  # 🎉 CONFETTI!
                 else:
                     st.error("❌ Not eligible - requested amount exceeds maximum.")
             else:
-                st.error(f"Backend returned an error: {response.text}")
+                st.error(f"Backend error: {response.text}")
         except Exception as e:
-            st.error(f"Could not connect to the calculator service: {e}")
+            st.error(f"Could not connect: {e}")
 
 # Loan Calculator Section
 with st.expander("Loan Calculator", expanded=True):
@@ -79,12 +88,13 @@ with st.expander("Loan Calculator", expanded=True):
                 st.subheader("Loan Results")
                 st.write(f"**Total Repayable Amount:** ${result['total_amount']:,.2f}")
                 st.write(f"**Total Interest:** ${result['total_amount'] - loan_amount:,.2f}")
+                confetti()  # 🎉 CONFETTI FOR LOANS TOO!
                 
-                # Display Yearly Payment Schedule if present
+                # Display Yearly Payment Schedule
                 if 'schedule' in result:
                     st.subheader("Yearly Payment Schedule")
                     
-                    # Table View - Changed to Yearly
+                    # Table View
                     for year_data in result['schedule']:
                         st.write(
                             f"Year {year_data['Year']}: "
@@ -92,16 +102,30 @@ with st.expander("Loan Calculator", expanded=True):
                             f"Balance: ${year_data['Balance']:.2f}"
                         )
                     
-                    # Optional: Show Chart - Changed to Yearly
+                    # Show Chart
                     if st.checkbox("Show as chart", key="loan_chart"):
                         df = pd.DataFrame(result['schedule'])
                         st.line_chart(df.set_index('Year')['Balance'])
+                    
+                    # 📥 DOWNLOAD BUTTON
+                    import io
+                    buffer = io.BytesIO()
+                    df = pd.DataFrame(result['schedule'])
+                    df.to_csv(buffer, index=False)
+                    buffer.seek(0)
+                    
+                    st.download_button(
+                        label="📥 Download Full Report",
+                        data=buffer,
+                        file_name="loan_schedule.csv",
+                        mime="text/csv"
+                    )
 
             else:
-                st.error(f"Backend returned an error: {response.text}")
+                st.error(f"Backend error: {response.text}")
         except Exception as e:
-            st.error(f"Could not connect to the calculator service: {e}")
+            st.error(f"Could not connect: {e}")
 
 # Footer
 st.markdown("---")
-st.caption("Built with ❤️ using Streamlit, FastAPI, Pandas, and Docker.")
+st.caption("Built with ❤️ using Streamlit, FastAPI, Pandas, and Docker")
