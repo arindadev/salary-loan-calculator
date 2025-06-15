@@ -1,10 +1,15 @@
 import streamlit as st
 import requests
-import pandas as pd  # Required for chart display
+import pandas as pd
+import os  # Required for environment variables
 
-# Set backend URL (will work in Docker or local dev)
-BACKEND_URL = "http://backend:8000"  # For Docker Compose
-# BACKEND_URL = "http://localhost:8000"  # For local testing without Docker
+# Get backend URL from environment variable (set in Render)
+BACKEND_URL = os.getenv("BACKEND_URL")
+
+# Error if no backend URL is found
+if not BACKEND_URL:
+    st.error("❌ BACKEND_URL environment variable not set! Please configure it in Render.")
+    st.stop()  # Stop the app if no backend URL
 
 st.set_page_config(page_title="Salary & Loan Calculator", layout="wide")
 st.title("💰 Advanced Salary & Loan Calculator")
@@ -43,7 +48,7 @@ with st.expander("Salary Advance Calculator", expanded=True):
                 else:
                     st.error("❌ Not eligible - requested amount exceeds maximum.")
             else:
-                st.error("Backend returned an error 😢")
+                st.error(f"Backend returned an error: {response.text}")
         except Exception as e:
             st.error(f"Could not connect to the calculator service: {e}")
 
@@ -93,7 +98,7 @@ with st.expander("Loan Calculator", expanded=True):
                         st.line_chart(df.set_index('Year')['Balance'])
 
             else:
-                st.error("Backend returned an error 😢")
+                st.error(f"Backend returned an error: {response.text}")
         except Exception as e:
             st.error(f"Could not connect to the calculator service: {e}")
 
